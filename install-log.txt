@@ -1,0 +1,17 @@
+-------------------------------------------------------------------------------->8
+Version: 4.69.0 (224084)
+Sha1: 
+Started on: 2026-04-17 08:00:00.583
+Resources: C:\Users\Mac\AppData\Local\Temp\DockerDesktopInstallers\1776412794441964400\resources
+OS: Windows 10 Pro
+Edition: Professional
+Id: 2009
+Build: 26200
+BuildLabName: 26100.1.amd64fre.ge_release.240331-1435
+File: C:\Users\Mac\AppData\Local\Docker\install-log.txt
+CommandLine: "C:\Users\Mac\AppData\Local\Temp\DockerDesktopInstallers\1776412794441964400\Docker Desktop Installer.exe" install -package C:\Users\Mac\AppData\Local\Temp\DockerDesktopInstallers\1776412794467749200\DockerDesktop.d4w --auto-update --confirm --auto-close-and-start-app
+You can send feedback, including this log file, at https://dockr.ly/desktop-feedback
+[2026-04-17T08:00:00.718523900Z][Installer][I] Existing installation found: build=221278, version=4.64.0, basePath=C:\Program Files\Docker\Docker
+[2026-04-17T08:00:00.729011300Z][ManifestLoader][I] No install path specified, looking for default installation registry key
+[2026-04-17T08:00:01.985173200Z][ProcessEnvironmentDetector][I] Launching from base path: False
+[2026-04-17T08:00:01.985173200Z][ProcessEnvironmentDetector][I] Not run as admin, relaunching with UAC prompt

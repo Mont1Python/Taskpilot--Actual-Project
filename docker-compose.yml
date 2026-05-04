@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: todo
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/todo
+      - NODE_ENV=production
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:5000/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  ansible-panel:
+    build: .
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./playbooks:/app/playbooks
+      - ~/.ssh:/root/.ssh:ro
+      - ./ansible.cfg:/etc/ansible/ansible.cfg:ro
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

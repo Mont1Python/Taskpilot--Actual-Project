@@ -1,0 +1,369 @@
+---
+# Professional Kubernetes Cluster Setup with Ansible
+# For MCA Project Presentation
+# This playbook sets up a 3-node Kubernetes cluster (1 master + 2 workers)
+
+- name: Kubernetes Cluster Setup - MCA Project
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    kubernetes_version: "1.27.0"
+    container_runtime: "containerd"
+    pod_network_cidr: "10.244.0.0/16"
+    service_cidr: "10.96.0.0/12"
+    project_name: "To-Do List Application"
+    
+  tasks:
+    # ==================== PREREQUISITES ====================
+    - name: "PHASE 1: System Prerequisites"
+      debug:
+        msg: "Setting up system prerequisites on {{ inventory_hostname }}"
+    
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - net-tools
+          - wget
+          - vim
+          - git
+          - htop
+        state: present
+    
+    # ==================== KERNEL CONFIGURATION ====================
+    - name: "PHASE 2: Kernel Configuration"
+      debug:
+        msg: "Configuring kernel modules for Kubernetes"
+    
+    - name: Load required kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+    
+    - name: Create /etc/modules-load.d/k8s.conf
+      copy:
+        content: |
+          overlay
+          br_netfilter
+        dest: /etc/modules-load.d/k8s.conf
+        mode: '0644'
+    
+    - name: Configure sysctl for Kubernetes
+      sysctl:
+        name: "{{ item }}"
+        value: "1"
+        state: present
+        sysctl_set: yes
+        reload: yes
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.bridge.bridge-nf-call-ip6tables
+        - net.ipv4.ip_forward
+    
+    # ==================== CONTAINER RUNTIME ====================
+    - name: "PHASE 3: Container Runtime Installation (Containerd)"
+      debug:
+        msg: "Installing {{ container_runtime }} container runtime"
+    
+    - name: Add Docker repository key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+    
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+    
+    - name: Install containerd
+      apt:
+        name:
+          - containerd.io=1.6.19-1
+        state: present
+    
+    - name: Create containerd configuration directory
+      file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+    
+    - name: Generate containerd default configuration
+      shell: containerd config default | tee /etc/containerd/config.toml
+      notify: restart containerd
+    
+    - name: Ensure containerd is started and enabled
+      systemd:
+        name: containerd
+        state: started
+        enabled: yes
+        daemon_reload: yes
+    
+    # ==================== KUBERNETES INSTALLATION ====================
+    - name: "PHASE 4: Kubernetes Installation (kubeadm, kubelet, kubectl)"
+      debug:
+        msg: "Installing Kubernetes v{{ kubernetes_version }}"
+    
+    - name: Add Kubernetes repository key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+    
+    - name: Add Kubernetes repository
+      apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+    
+    - name: Install Kubernetes tools
+      apt:
+        name:
+          - kubelet=1.27.0-00
+          - kubeadm=1.27.0-00
+          - kubectl=1.27.0-00
+        state: present
+    
+    - name: Hold Kubernetes packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+    
+    - name: Start and enable kubelet service
+      systemd:
+        name: kubelet
+        state: started
+        enabled: yes
+        daemon_reload: yes
+    
+    - name: Disable swap
+      shell: swapoff -a
+      ignore_errors: yes
+    
+    - name: Remove swap from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: 'swap'
+        state: absent
+    
+    # ==================== MASTER NODE INITIALIZATION ====================
+    - name: "PHASE 5: Initialize Kubernetes Master Node"
+      when: inventory_hostname in groups['master']
+      block:
+        - name: Initialize Kubernetes cluster
+          shell: |
+            kubeadm init \
+              --pod-network-cidr={{ pod_network_cidr }} \
+              --service-cidr={{ service_cidr }} \
+              --apiserver-advertise-address={{ ansible_default_ipv4.address }} \
+              --kubernetes-version=v{{ kubernetes_version }}
+          register: kubeadm_init
+          ignore_errors: yes
+        
+        - name: Create .kube directory
+          file:
+            path: /root/.kube
+            state: directory
+            mode: '0755'
+        
+        - name: Copy admin config
+          shell: cp /etc/kubernetes/admin.conf /root/.kube/config
+          ignore_errors: yes
+        
+        - name: Set proper permissions
+          shell: chown root:root /root/.kube/config
+        
+        - name: Generate kubeadm join token
+          shell: kubeadm token create --print-join-command
+          register: join_command
+          ignore_errors: yes
+        
+        - name: Save join command for workers
+          copy:
+            content: "{{ join_command.stdout }}"
+            dest: /tmp/join_command.sh
+            mode: '0755'
+        
+        - name: Deploy Flannel CNI
+          shell: |
+            kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+          environment:
+            KUBECONFIG: /root/.kube/config
+          ignore_errors: yes
+        
+        - name: Wait for control plane to be ready
+          shell: kubectl get nodes -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' --kubeconfig=/root/.kube/config
+          register: cp_ready
+          until: cp_ready.stdout == "True"
+          retries: 30
+          delay: 10
+          ignore_errors: yes
+        
+        - name: Display cluster info
+          shell: kubectl cluster-info --kubeconfig=/root/.kube/config
+          register: cluster_info
+        
+        - name: Show cluster status
+          debug:
+            msg:
+              - "======================================"
+              - "Kubernetes Cluster Initialized!"
+              - "======================================"
+              - "{{ cluster_info.stdout_lines }}"
+    
+    # ==================== WORKER NODE SETUP ====================
+    - name: "PHASE 6: Join Worker Nodes to Cluster"
+      when: inventory_hostname in groups['workers']
+      block:
+        - name: Wait for join command from master
+          wait_for:
+            host: "{{ hostvars[groups['master'][0]]['ansible_host'] }}"
+            port: 6443
+            timeout: 600
+        
+        - name: Join worker to cluster
+          shell: "{{ hostvars[groups['master'][0]]['join_command']['stdout'] }}"
+          ignore_errors: yes
+          register: worker_join
+          retries: 3
+          until: worker_join.rc == 0
+          delay: 10
+        
+        - name: Display worker join status
+          debug:
+            msg: "Worker {{ inventory_hostname }} joined cluster"
+    
+    # ==================== KUBERNETES DASHBOARD (OPTIONAL) ====================
+    - name: "PHASE 7: Deploy Kubernetes Dashboard (Optional)"
+      when: inventory_hostname in groups['master']
+      block:
+        - name: Deploy Kubernetes Dashboard
+          shell: |
+            kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+          environment:
+            KUBECONFIG: /root/.kube/config
+          ignore_errors: yes
+        
+        - name: Create dashboard admin user
+          shell: |
+            kubectl create serviceaccount admin-user -n kubernetes-dashboard
+            kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user
+          environment:
+            KUBECONFIG: /root/.kube/config
+          ignore_errors: yes
+    
+    # ==================== APPLICATION DEPLOYMENT ====================
+    - name: "PHASE 8: Deploy To-Do Application"
+      when: inventory_hostname in groups['master']
+      block:
+        - name: Create application namespace
+          shell: kubectl create namespace todo-app --dry-run=client -o yaml | kubectl apply -f -
+          environment:
+            KUBECONFIG: /root/.kube/config
+          ignore_errors: yes
+        
+        - name: Deploy application manifests
+          shell: kubectl apply -f /root/k8s/todo-app.yaml
+          environment:
+            KUBECONFIG: /root/.kube/config
+          ignore_errors: yes
+        
+        - name: Wait for deployments to be ready
+          shell: |
+            kubectl wait --for=condition=available --timeout=300s deployment/backend -n todo-app
+            kubectl wait --for=condition=available --timeout=300s deployment/frontend -n todo-app
+          environment:
+            KUBECONFIG: /root/.kube/config
+          ignore_errors: yes
+        
+        - name: Get application status
+          shell: kubectl get all -n todo-app
+          environment:
+            KUBECONFIG: /root/.kube/config
+          register: app_status
+        
+        - name: Display application status
+          debug:
+            msg:
+              - "======================================"
+              - "To-Do Application Deployed!"
+              - "======================================"
+              - "{{ app_status.stdout_lines }}"
+    
+    # ==================== FINAL STATUS ====================
+    - name: "PHASE 9: Verify Cluster Status"
+      when: inventory_hostname in groups['master']
+      block:
+        - name: Get final cluster status
+          shell: kubectl get nodes -o wide
+          environment:
+            KUBECONFIG: /root/.kube/config
+          register: final_status
+        
+        - name: Display final status
+          debug:
+            msg:
+              - "======================================"
+              - "KUBERNETES CLUSTER STATUS"
+              - "======================================"
+              - "{{ final_status.stdout_lines }}"
+              - ""
+              - "Project: {{ project_name }}"
+              - "Kubernetes Version: v{{ kubernetes_version }}"
+              - "Container Runtime: {{ container_runtime }}"
+              - "Pod Network CIDR: {{ pod_network_cidr }}"
+              - "Service CIDR: {{ service_cidr }}"
+              - "======================================"
+  
+  handlers:
+    - name: restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        daemon_reload: yes
+
+# ==================== POST-DEPLOYMENT TASKS ====================
+- name: Post-Deployment Verification
+  hosts: master
+  tasks:
+    - name: Display access instructions
+      debug:
+        msg:
+          - ""
+          - "========================================="
+          - "SETUP COMPLETE!"
+          - "========================================="
+          - ""
+          - "Your Kubernetes cluster is ready!"
+          - ""
+          - "Master Node: {{ groups['master'][0] }}"
+          - "Worker Nodes: {{ groups['workers'] | join(', ') }}"
+          - ""
+          - "To access the cluster:"
+          - "  scp root@{{ hostvars[groups['master'][0]]['ansible_host'] }}:/root/.kube/config ~/.kube/config"
+          - ""
+          - "To view cluster status:"
+          - "  kubectl get nodes"
+          - "  kubectl get pods -n todo-app"
+          - ""
+          - "To access the application:"
+          - "  kubectl port-forward -n todo-app svc/frontend 3000:3000"
+          - "  kubectl port-forward -n todo-app svc/backend 5000:5000"
+          - ""
+          - "========================================="

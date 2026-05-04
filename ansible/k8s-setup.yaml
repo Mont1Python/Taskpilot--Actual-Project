@@ -1,0 +1,159 @@
+---
+- name: Setup Kubernetes Cluster
+  hosts: all
+  become: yes
+  vars:
+    kubernetes_version: "1.27.0"
+    container_runtime: "containerd"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Kubernetes apt key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Kubernetes repository
+      apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install containerd
+      apt:
+        name: containerd.io
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install kubeadm, kubelet, kubectl
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Hold Kubernetes packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+      when: ansible_os_family == "Debian"
+
+    - name: Load required kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Enable IP forwarding
+      sysctl:
+        name: "{{ item }}"
+        value: "1"
+        state: present
+        sysctl_set: yes
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.bridge.bridge-nf-call-ip6tables
+        - net.ipv4.ip_forward
+
+    - name: Disable swap
+      shell: swapoff -a
+      ignore_errors: yes
+
+    - name: Remove swap from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: 'swap'
+        state: absent
+
+    - name: Start and enable kubelet
+      systemd:
+        name: kubelet
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Start and enable containerd
+      systemd:
+        name: containerd
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+- name: Initialize Kubernetes Master
+  hosts: master
+  become: yes
+  vars:
+    pod_network_cidr: "10.244.0.0/16"
+
+  tasks:
+    - name: Initialize Kubernetes cluster
+      shell: kubeadm init --pod-network-cidr={{ pod_network_cidr }} --apiserver-advertise-address={{ ansible_default_ipv4.address }}
+      register: kubeadm_init
+      ignore_errors: yes
+
+    - name: Create kube config directory
+      file:
+        path: /root/.kube
+        state: directory
+
+    - name: Copy admin config
+      shell: cp /etc/kubernetes/admin.conf /root/.kube/config && chown root:root /root/.kube/config
+      ignore_errors: yes
+
+    - name: Deploy Flannel CNI
+      shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+      ignore_errors: yes
+
+    - name: Get join command
+      shell: kubeadm token create --print-join-command
+      register: join_command
+      ignore_errors: yes
+
+    - name: Save join command
+      copy:
+        content: "{{ join_command.stdout }}"
+        dest: /tmp/join_command.sh
+      ignore_errors: yes
+
+- name: Join Worker Nodes to Cluster
+  hosts: workers
+  become: yes
+
+  tasks:
+    - name: Wait for master to be ready
+      wait_for:
+        host: "{{ hostvars['master']['ansible_host'] }}"
+        port: 6443
+        timeout: 300
+
+    - name: Join to cluster
+      shell: "{{ hostvars['master']['join_command']['stdout'] }}"
+      ignore_errors: yes
+      register: worker_join
+      until: worker_join is succeeded
+      retries: 3
+      delay: 10

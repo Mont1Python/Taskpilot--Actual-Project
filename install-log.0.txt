@@ -1,0 +1,15 @@
+-------------------------------------------------------------------------------->8
+Version: 4.64.0 (221278)
+Sha1: 
+Started on: 2026-03-15 12:48:05.923
+Resources: C:\Users\Mac\AppData\Local\Temp\DockerDesktopInstallers\1773578880964182500\resources
+OS: Windows 10 Pro
+Edition: Professional
+Id: 2009
+Build: 26200
+BuildLabName: 26100.1.amd64fre.ge_release.240331-1435
+File: C:\Users\Mac\AppData\Local\Docker\install-log.txt
+CommandLine: "C:\Users\Mac\AppData\Local\Temp\DockerDesktopInstallers\1773578880964182500\Docker Desktop Installer.exe" install -package C:\Users\Mac\AppData\Local\Temp\DockerDesktopInstallers\1773578880993197500\DockerDesktop.d4w
+You can send feedback, including this log file, at https://dockr.ly/desktop-feedback
+[2026-03-15T12:48:06.009984600Z][Installer][I] No installation found
+[2026-03-15T12:48:06.218919400Z][ProcessEnvironmentDetector][I] Not run as admin, relaunching with UAC prompt

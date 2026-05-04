@@ -1,0 +1,35 @@
+Node Management Commands
+
+### ⏸️ PAUSE Nodes (Drain all workloads)
+
+
+node-control.bat pause
+
+
+Evicts all pods from workers. Nodes go to "SchedulingDisabled" state.
+
+### ▶️ RESUME Nodes (Bring workloads back)
+
+
+node-control.bat resume
+
+
+Uncordons nodes and redeploys all pods across workers.
+
+### 🔍 CHECK Status
+
+
+node-control.bat status
+
+
+Shows all nodes, pods, deployments, services.
+
+### 🚀 START Cluster
+
+
+node-control.bat start
+
+### 🛑 STOP Cluster
+
+
+node-control.bat stop
