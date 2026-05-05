@@ -5,6 +5,24 @@ import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+const MOTIVATIONAL_QUOTES = [
+  "🚀 Keep crushing it!",
+  "✨ You're doing amazing!",
+  "💪 No pressure, just passion!",
+  "🎯 Mission: Destroy your to-do list!",
+  "⚡ Productivity level: 9000!",
+  "🔥 You've got this, chief!",
+  "🌟 Making productivity cool again!",
+  "🎪 Procrastination? Never heard of her!",
+  "🏆 Today's wins: incoming!",
+  "🚂 All aboard the focus train!",
+  "💥 Knocking out tasks like a boss!",
+  "🎸 Rock those goals!",
+  "☄️ Meteor shower of productivity!",
+  "🌈 Sparkle and slay, queen!",
+  "🎯 Aim high, achieve higher!"
+];
+
 // Setup axios interceptor for JWT token
 axios.interceptors.request.use(
   (config) => {
@@ -110,6 +128,7 @@ function App() {
   const [ansibleOutput, setAnsibleOutput] = useState([]);
   const [ansibleLoading, setAnsibleLoading] = useState(false);
   const [stats, setStats] = useState(null);
+  const [motivationalIndex, setMotivationalIndex] = useState(0);
   
   // Category creation modal
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -156,6 +175,14 @@ function App() {
     }
   }, [filterCategory, filterCompleted, isAuthenticated]);
 
+  // Change motivational quote every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMotivationalIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
   const initializeApp = async () => {
     try {
       await axios.post(`${API_URL}/categories/init`);
@@ -193,10 +220,7 @@ function App() {
       if (filterCategory !== 'All') params.category = filterCategory;
       if (filterCompleted !== 'all') params.completed = filterCompleted === 'completed';
       
-      console.log('Fetching todos with params:', params, 'from', API_URL);
-      
       const res = await axios.get(`${API_URL}/todos`, { params });
-      console.log('Todos fetched:', res.data);
       setTodos(res.data);
     } catch (err) {
       console.error('Error fetching todos:', err);
@@ -311,16 +335,11 @@ function App() {
     if (!newCategoryName.trim()) return;
     
     try {
-      console.log('Creating category with API_URL:', API_URL);
-      console.log('Payload:', { name: newCategoryName, color: newCategoryColor, icon: newCategoryIcon });
-      
       const response = await axios.post(`${API_URL}/categories`, {
         name: newCategoryName,
         color: newCategoryColor,
         icon: newCategoryIcon
       });
-      
-      console.log('Category created:', response.data);
       
       setNewCategoryName('');
       setNewCategoryColor('#3B82F6');
@@ -332,7 +351,6 @@ function App() {
       await fetchStats();
     } catch (err) {
       console.error('Error adding category:', err);
-      console.error('Response:', err.response?.data);
       alert('Failed to create category: ' + (err.response?.data?.error || err.message));
     }
   };
@@ -392,18 +410,60 @@ function App() {
   return (
     <div className="app" style={{
       background: currentTheme.background,
-      color: currentTheme.text
+      color: currentTheme.text,
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
-      {/* HEADER */}
+      {/* HEADER - STICKY */}
       <header className="header" style={{
         background: `linear-gradient(135deg, ${currentTheme.primary}15 0%, ${currentTheme.primary}08 100%)`,
-        borderBottom: `2px solid ${currentTheme.border}`
+        borderBottom: `2px solid ${currentTheme.border}`,
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        flexShrink: 0
       }}>
         <div className="header-content">
-          <div className="header-left">
-            <h1 className="title">✓ TaskPilot</h1>
+          <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Rocket Logo */}
+            <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              {/* Rocket body */}
+              <ellipse cx="50" cy="65" rx="12" ry="28" fill={currentTheme.primary} />
+              {/* Rocket nose cone */}
+              <polygon points="50,15 45,35 55,35" fill={currentTheme.primary} />
+              {/* Left fin */}
+              <polygon points="38,55 25,70 35,60" fill={currentTheme.primary} opacity="0.8" />
+              {/* Right fin */}
+              <polygon points="62,55 75,70 65,60" fill={currentTheme.primary} opacity="0.8" />
+              {/* Window */}
+              <circle cx="50" cy="45" r="6" fill="white" opacity="0.9" />
+              {/* Flame 1 */}
+              <polygon points="45,93 42,112 48,95" fill="#F97316" opacity="0.9" />
+              {/* Flame 2 */}
+              <polygon points="55,93 58,112 52,95" fill="#FFA500" opacity="0.9" />
+              {/* Flame glow */}
+              <circle cx="50" cy="105" r="7" fill="#FFB84D" opacity="0.5" />
+            </svg>
+
+            <div>
+              <h1 className="title" style={{ margin: '0 0 0.25rem 0', fontSize: '1.75rem' }}>✓ TaskPilot</h1>
+              <p style={{
+                margin: 0,
+                fontSize: '0.85rem',
+                fontStyle: 'italic',
+                opacity: 0.75,
+                color: currentTheme.primary,
+                minHeight: '1.2rem',
+                transition: 'opacity 0.5s ease',
+                maxWidth: '300px'
+              }}>
+                {MOTIVATIONAL_QUOTES[motivationalIndex]}
+              </p>
+            </div>
+
             {stats && (
-              <div className="stats-bar">
+              <div className="stats-bar" style={{ marginLeft: '2rem' }}>
                 <span className="stat-item">📋 {stats.totalTodos} Tasks</span>
                 <span className="stat-divider">•</span>
                 <span className="stat-item">✅ {stats.completedTodos} Done</span>
@@ -431,7 +491,7 @@ function App() {
               ))}
             </div>
 
-            {/* ANSIBLE BUTTON - LARGE & PROMINENT */}
+            {/* ANSIBLE BUTTON */}
             <button
               className="ansible-btn"
               onClick={() => setShowAnsibleModal(true)}
@@ -888,12 +948,13 @@ function App() {
         </div>
       )}
 
-      <main className="main">
+      <main className="main" style={{ flex: 1, overflow: 'auto' }}>
         <div className="container">
           {/* CATEGORIES SIDEBAR */}
           <aside className="sidebar" style={{
             background: `${currentTheme.secondary}80`,
-            borderColor: currentTheme.border
+            borderColor: currentTheme.border,
+            height: 'fit-content'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 className="sidebar-title">📂 Categories</h3>
