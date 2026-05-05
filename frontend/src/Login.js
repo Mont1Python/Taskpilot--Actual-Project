@@ -92,7 +92,7 @@ function Login({ onLogin }) {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>✓ To-Do App</h1>
+          <h1>✈️ TaskPilot</h1>
           <p>{isLogin ? 'Welcome Back' : 'Create Account'}</p>
         </div>
 

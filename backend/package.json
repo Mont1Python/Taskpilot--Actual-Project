@@ -1,7 +1,7 @@
 {
-  "name": "todo-backend",
+  "name": "taskpilot-backend",
   "version": "1.0.0",
-  "description": "To-do list backend API",
+  "description": "TaskPilot backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

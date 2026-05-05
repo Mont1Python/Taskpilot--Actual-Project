@@ -401,7 +401,7 @@ function App() {
       }}>
         <div className="header-content">
           <div className="header-left">
-            <h1 className="title">✓ My To-Do App</h1>
+            <h1 className="title">✓ TaskPilot</h1>
             {stats && (
               <div className="stats-bar">
                 <span className="stat-item">📋 {stats.totalTodos} Tasks</span>

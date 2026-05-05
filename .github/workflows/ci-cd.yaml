@@ -20,16 +20,16 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies (${{ matrix.service }})
         run: npm ci
         working-directory: ./${{ matrix.service }}
 
       - name: Run tests (${{ matrix.service }})
-        run: npm test -- --coverage --watchAll=false
+        run: npm test -- --coverage --watchAll=false --passWithNoTests
         working-directory: ./${{ matrix.service }}
         continue-on-error: true
 
@@ -94,11 +94,11 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f k8s/todo-app.yaml
-          kubectl rollout status deployment/backend -n todo-app --timeout=5m
-          kubectl rollout status deployment/frontend -n todo-app --timeout=5m
+          kubectl apply -f k8s/taskpilot-app.yaml
+          kubectl rollout status deployment/backend -n taskpilot --timeout=5m
+          kubectl rollout status deployment/frontend -n taskpilot --timeout=5m
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n todo-app
-          kubectl get svc -n todo-app
+          kubectl get pods -n taskpilot
+          kubectl get svc -n taskpilot

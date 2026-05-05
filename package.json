@@ -1,7 +1,7 @@
 {
-  "name": "ansible-control-panel",
+  "name": "taskpilot",
   "version": "1.0.0",
-  "description": "Web-based Ansible Control Panel for deployment and monitoring",
+  "description": "TaskPilot - Intelligent task management application",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

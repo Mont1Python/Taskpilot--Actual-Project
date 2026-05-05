@@ -1,0 +1,28 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#4F46E5" opacity="0.1" stroke="#4F46E5" stroke-width="2"/>
+  
+  <!-- Main checkmark mark (stylized as pilot's path) -->
+  <g transform="translate(100, 100)">
+    <!-- Compass/pilot theme -->
+    <circle cx="0" cy="0" r="70" fill="none" stroke="#4F46E5" stroke-width="3"/>
+    
+    <!-- Top pointer (N) -->
+    <path d="M 0,-70 L 8,-50 L -8,-50 Z" fill="#4F46E5"/>
+    
+    <!-- Task checkmark integrated with compass -->
+    <path d="M -35,0 L -10,25 L 35,-20" fill="none" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Inner circle for polished look -->
+    <circle cx="0" cy="0" r="50" fill="none" stroke="#4F46E5" stroke-width="2" opacity="0.5"/>
+    
+    <!-- Decorative accent dots -->
+    <circle cx="0" cy="-50" r="4" fill="#4F46E5"/>
+    <circle cx="50" cy="0" r="4" fill="#4F46E5"/>
+    <circle cx="0" cy="50" r="4" fill="#4F46E5"/>
+    <circle cx="-50" cy="0" r="4" fill="#4F46E5"/>
+  </g>
+  
+  <!-- Text below icon -->
+  <text x="100" y="180" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#4F46E5">TaskPilot</text>
+</svg>
