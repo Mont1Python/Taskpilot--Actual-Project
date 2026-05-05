@@ -20,10 +20,24 @@ const MOTIVATIONAL_QUOTES = [
   "🎸 Rock those goals!",
   "☄️ Meteor shower of productivity!",
   "🌈 Sparkle and slay, queen!",
-  "🎯 Aim high, achieve higher!"
+  "🎯 Aim high, achieve higher!",
+  "😂 Procrastination is just planning to work later!",
+  "🤓 Work hard, nap harder!",
+  "🍕 One task at a time, or pizza will get cold!",
+  "☕ Coffee: the official task fuel",
+  "🎉 Finished? Take a victory lap!",
+  "🧠 Brain.exe is running at 100%",
+  "🐢 Slow and steady wins the race!",
+  "👑 You're a task-crushing royalty!",
+  "🎭 Life's a stage, tasks are your script!",
+  "🌙 Even your to-do list dreams of rest!",
+  "🏅 Trophy unlocked: Task master",
+  "🎮 New achievement: Adulting Level 99!",
+  "💎 You're too busy being awesome to fail!",
+  "🦄 Unicorns don't procrastinate either!",
+  "🎪 This is your circus, these are your tasks!"
 ];
 
-// Setup axios interceptor for JWT token
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -37,7 +51,6 @@ axios.interceptors.request.use(
   }
 );
 
-// Handle 401 responses
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -108,12 +121,9 @@ const PRESET_CATEGORIES = [
 ];
 
 function App() {
-  // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-
-  // Todo state
   const [todos, setTodos] = useState([]);
   const [categories, setCategories] = useState([]);
   const [title, setTitle] = useState('');
@@ -130,13 +140,11 @@ function App() {
   const [stats, setStats] = useState(null);
   const [motivationalIndex, setMotivationalIndex] = useState(0);
   
-  // Category creation modal
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6');
   const [newCategoryIcon, setNewCategoryIcon] = useState('📌');
   
-  // Edit modals
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editTaskTitle, setEditTaskTitle] = useState('');
@@ -146,10 +154,17 @@ function App() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [editCategoryName, setEditCategoryName] = useState('');
   const [editCategoryColor, setEditCategoryColor] = useState('');
+  
+  const [showCategoryScrollTop, setShowCategoryScrollTop] = useState(false);
+  const [showCategoryScrollBottom, setShowCategoryScrollBottom] = useState(false);
+  const [showTodosScrollTop, setShowTodosScrollTop] = useState(false);
+  const [showTodosScrollBottom, setShowTodosScrollBottom] = useState(false);
+  
+  const categoriesScrollRef = React.useRef(null);
+  const todosScrollRef = React.useRef(null);
 
   const currentTheme = THEMES[theme];
 
-  // Check authentication on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -175,7 +190,6 @@ function App() {
     }
   }, [filterCategory, filterCompleted, isAuthenticated]);
 
-  // Change motivational quote every 8 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setMotivationalIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length);
@@ -335,7 +349,7 @@ function App() {
     if (!newCategoryName.trim()) return;
     
     try {
-      const response = await axios.post(`${API_URL}/categories`, {
+      await axios.post(`${API_URL}/categories`, {
         name: newCategoryName,
         color: newCategoryColor,
         icon: newCategoryIcon
@@ -402,7 +416,46 @@ function App() {
     return custom ? custom.icon : '📌';
   };
 
-  // Render login page if not authenticated
+  const handleCategoryScroll = () => {
+    if (categoriesScrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = categoriesScrollRef.current;
+      setShowCategoryScrollTop(scrollTop > 10);
+      setShowCategoryScrollBottom(scrollTop < scrollHeight - clientHeight - 10);
+    }
+  };
+
+  const handleTodosScroll = () => {
+    if (todosScrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = todosScrollRef.current;
+      setShowTodosScrollTop(scrollTop > 10);
+      setShowTodosScrollBottom(scrollTop < scrollHeight - clientHeight - 10);
+    }
+  };
+
+  const scrollCategoriesUp = () => {
+    if (categoriesScrollRef.current) {
+      categoriesScrollRef.current.scrollBy({ top: -100, behavior: 'smooth' });
+    }
+  };
+
+  const scrollCategoriesDown = () => {
+    if (categoriesScrollRef.current) {
+      categoriesScrollRef.current.scrollBy({ top: 100, behavior: 'smooth' });
+    }
+  };
+
+  const scrollTodosUp = () => {
+    if (todosScrollRef.current) {
+      todosScrollRef.current.scrollBy({ top: -100, behavior: 'smooth' });
+    }
+  };
+
+  const scrollTodosDown = () => {
+    if (todosScrollRef.current) {
+      todosScrollRef.current.scrollBy({ top: 100, behavior: 'smooth' });
+    }
+  };
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -415,7 +468,6 @@ function App() {
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* HEADER - STICKY */}
       <header className="header" style={{
         background: `linear-gradient(135deg, ${currentTheme.primary}15 0%, ${currentTheme.primary}08 100%)`,
         borderBottom: `2px solid ${currentTheme.border}`,
@@ -426,28 +478,8 @@ function App() {
       }}>
         <div className="header-content">
           <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {/* Rocket Logo */}
-            <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              {/* Rocket body */}
-              <ellipse cx="50" cy="65" rx="12" ry="28" fill={currentTheme.primary} />
-              {/* Rocket nose cone */}
-              <polygon points="50,15 45,35 55,35" fill={currentTheme.primary} />
-              {/* Left fin */}
-              <polygon points="38,55 25,70 35,60" fill={currentTheme.primary} opacity="0.8" />
-              {/* Right fin */}
-              <polygon points="62,55 75,70 65,60" fill={currentTheme.primary} opacity="0.8" />
-              {/* Window */}
-              <circle cx="50" cy="45" r="6" fill="white" opacity="0.9" />
-              {/* Flame 1 */}
-              <polygon points="45,93 42,112 48,95" fill="#F97316" opacity="0.9" />
-              {/* Flame 2 */}
-              <polygon points="55,93 58,112 52,95" fill="#FFA500" opacity="0.9" />
-              {/* Flame glow */}
-              <circle cx="50" cy="105" r="7" fill="#FFB84D" opacity="0.5" />
-            </svg>
-
             <div>
-              <h1 className="title" style={{ margin: '0 0 0.25rem 0', fontSize: '1.75rem' }}>✓ TaskPilot</h1>
+              <h1 className="title" style={{ margin: '0 0 0.25rem 0', fontSize: '1.75rem' }}>TaskPilot</h1>
               <p style={{
                 margin: 0,
                 fontSize: '0.85rem',
@@ -491,7 +523,6 @@ function App() {
               ))}
             </div>
 
-            {/* ANSIBLE BUTTON */}
             <button
               className="ansible-btn"
               onClick={() => setShowAnsibleModal(true)}
@@ -505,7 +536,6 @@ function App() {
               <span className="ansible-text">Ansible Deploy</span>
             </button>
 
-            {/* User Info and Logout Button */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -544,7 +574,6 @@ function App() {
         </div>
       </header>
 
-      {/* EDIT TASK MODAL */}
       {showEditTaskModal && (
         <div className="modal-overlay" onClick={(e) => {
           if (e.target === e.currentTarget) setShowEditTaskModal(false);
@@ -627,7 +656,6 @@ function App() {
         </div>
       )}
 
-      {/* EDIT CATEGORY MODAL */}
       {showEditCategoryModal && (
         <div className="modal-overlay" onClick={(e) => {
           if (e.target === e.currentTarget) setShowEditCategoryModal(false);
@@ -710,7 +738,6 @@ function App() {
         </div>
       )}
 
-      {/* CREATE CATEGORY MODAL */}
       {showCategoryModal && (
         <div className="modal-overlay" onClick={(e) => {
           if (e.target === e.currentTarget) setShowCategoryModal(false);
@@ -821,7 +848,6 @@ function App() {
         </div>
       )}
 
-      {/* ANSIBLE MODAL */}
       {showAnsibleModal && (
         <div className="modal-overlay" onClick={(e) => {
           if (e.target === e.currentTarget) setShowAnsibleModal(false);
@@ -839,7 +865,6 @@ function App() {
               ✕
             </button>
 
-            {/* Tabs */}
             <div className="ansible-tabs">
               <button
                 className={`ansible-tab ${ansibleTab === 'info' ? 'active' : ''}`}
@@ -863,7 +888,6 @@ function App() {
               </button>
             </div>
 
-            {/* Content */}
             <div className="ansible-content">
               {ansibleTab === 'info' && (
                 <div>
@@ -950,13 +974,12 @@ function App() {
 
       <main className="main" style={{ flex: 1, overflow: 'auto' }}>
         <div className="container">
-          {/* CATEGORIES SIDEBAR */}
           <aside className="sidebar" style={{
             background: `${currentTheme.secondary}80`,
             borderColor: currentTheme.border,
             height: 'fit-content'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0' }}>
               <h3 className="sidebar-title">📂 Categories</h3>
               <button
                 onClick={() => setShowCategoryModal(true)}
@@ -970,14 +993,29 @@ function App() {
                   height: '30px',
                   cursor: 'pointer',
                   fontWeight: 'bold',
-                  fontSize: '1.2rem'
+                  fontSize: '1.2rem',
+                  marginRight: '1.5rem'
                 }}
               >
                 +
               </button>
             </div>
             
-            <div className="categories-grid">
+            <div 
+              className="categories-grid" 
+              ref={categoriesScrollRef}
+              onScroll={handleCategoryScroll}
+            >
+              {showCategoryScrollTop && (
+                <button
+                  className="categories-scroll-top visible"
+                  onClick={scrollCategoriesUp}
+                  title="Scroll categories up"
+                >
+                  ▲
+                </button>
+              )}
+              
               <button
                 className={`category-card ${filterCategory === 'All' ? 'active' : ''}`}
                 onClick={() => setFilterCategory('All')}
@@ -1006,7 +1044,6 @@ function App() {
                 </button>
               ))}
 
-              {/* Custom Categories */}
               {categories.filter(c => !c.isDefault).map(cat => (
                 <div
                   key={cat._id}
@@ -1060,16 +1097,26 @@ function App() {
                   </button>
                 </div>
               ))}
+              
+              {showCategoryScrollBottom && (
+                <button
+                  className="categories-scroll-bottom visible"
+                  onClick={scrollCategoriesDown}
+                  title="Scroll categories down"
+                >
+                  ▼
+                </button>
+              )}
             </div>
 
-            {/* Filters */}
-            <h3 className="sidebar-title" style={{ marginTop: '1.5rem' }}>🔍 Filters</h3>
+            <h3 className="sidebar-title" style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>🔍 Filters</h3>
             <select
               value={filterCompleted}
               onChange={(e) => setFilterCompleted(e.target.value)}
               style={{
-                width: '100%',
-                padding: '0.75rem',
+                width: 'calc(100% - 3rem)',
+                padding: '0.75rem 1.5rem',
+                margin: '0 1.5rem 1.5rem 1.5rem',
                 background: currentTheme.background,
                 color: currentTheme.text,
                 border: `2px solid ${currentTheme.primary}`,
@@ -1082,9 +1129,7 @@ function App() {
             </select>
           </aside>
 
-          {/* MAIN CONTENT */}
           <div className="content">
-            {/* Add Todo Form */}
             <section className="add-todo-section" style={{
               background: `linear-gradient(135deg, ${currentTheme.primary}10, ${currentTheme.secondary}40)`,
               borderColor: currentTheme.primary,
@@ -1171,7 +1216,6 @@ function App() {
               </form>
             </section>
 
-            {/* Todos List */}
             <section className="todos-section">
               <h2>📋 Your Tasks</h2>
               {todos.length === 0 ? (
@@ -1179,7 +1223,17 @@ function App() {
                   <p>🎉 No tasks yet! Create one to get started.</p>
                 </div>
               ) : (
-                <ul className="todo-list">
+                <ul className="todo-list" ref={todosScrollRef} onScroll={handleTodosScroll}>
+                  {showTodosScrollTop && (
+                    <button
+                      className="todos-scroll-top visible"
+                      onClick={scrollTodosUp}
+                      title="Scroll tasks up"
+                    >
+                      ▲
+                    </button>
+                  )}
+                  
                   {todos.map(todo => (
                     <li
                       key={todo._id}
@@ -1236,6 +1290,16 @@ function App() {
                       </button>
                     </li>
                   ))}
+                  
+                  {showTodosScrollBottom && (
+                    <button
+                      className="todos-scroll-bottom visible"
+                      onClick={scrollTodosDown}
+                      title="Scroll tasks down"
+                    >
+                      ▼
+                    </button>
+                  )}
                 </ul>
               )}
             </section>
