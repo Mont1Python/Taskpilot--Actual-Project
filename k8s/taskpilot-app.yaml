@@ -126,7 +126,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: backend
-          image: taskpilot-backend:latest
+          image: taskpilot-backend:v1
           imagePullPolicy: Never
           ports:
             - containerPort: 5000
@@ -204,7 +204,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: frontend
-          image: taskpilot-frontend:latest
+          image: taskpilot-frontend:v2
           imagePullPolicy: Never
           ports:
             - containerPort: 3000

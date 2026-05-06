@@ -444,7 +444,7 @@
         const response = await fetch('/api/apply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playbook: 'site.yml', dryRun })
+          body: JSON.stringify({ playbook: 'playbooks/site.yml', dryRun })
         });
 
         const result = await response.json();
@@ -458,7 +458,7 @@
           output.textContent = result.output || result.message || 'Unknown error occurred.';
         }
       } catch (error) {
-        message.innerHTML = '<div class="error-message">❌ Request failed</div>';
+        message.innerHTML = `<div class="error-message">❌ Request failed: ${error.message}</div>`;
         output.classList.add('error');
         output.textContent = `Error: ${error.message}`;
       }

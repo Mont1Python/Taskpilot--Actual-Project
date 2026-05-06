@@ -22,7 +22,9 @@ app.post('/api/apply', (req, res) => {
   executionLog = [];
   
   const dryRunFlag = dryRun ? '--check' : '';
-  const cmd = `ansible-playbook ${playbook || 'site.yml'} ${dryRunFlag} 2>&1`;
+  // Always resolve to playbooks/site.yml regardless of input
+  const playbookPath = 'playbooks/site.yml';
+  const cmd = `cd /app && ansible-playbook ${playbookPath} ${dryRunFlag} 2>&1`;
 
   exec(cmd, { timeout: 30000 }, (error, stdout, stderr) => {
     const result = {
