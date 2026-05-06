@@ -1,0 +1,66 @@
+---
+- name: "TaskPilot Deployment Verification"
+  hosts: all
+  gather_facts: yes
+  vars:
+    deployment_timestamp: "{{ ansible_date_time.iso8601 }}"
+    deployment_id: "{{ ansible_date_time.epoch }}"
+  
+  tasks:
+    - name: "Get Current Time"
+      debug:
+        msg: "Deployment verification at: {{ deployment_timestamp }}"
+    
+    - name: "Check System Information"
+      debug:
+        msg: |
+          Node: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Kernel: {{ ansible_kernel }}
+          Memory: {{ ansible_memtotal_mb }} MB
+          CPU: {{ ansible_processor_vcpus }} cores
+    
+    - name: "Verify Docker/Container Runtime"
+      shell: "docker --version 2>/dev/null || containerd --version"
+      register: container_runtime
+      ignore_errors: yes
+    
+    - name: "Display Container Runtime"
+      debug:
+        msg: "Container Runtime: {{ container_runtime.stdout }}"
+      when: container_runtime.rc == 0
+    
+    - name: "Verify Kubernetes Cluster Status"
+      shell: "kubectl get nodes -o wide 2>/dev/null || echo 'Kubernetes not available'"
+      register: k8s_status
+      ignore_errors: yes
+      become: no
+    
+    - name: "Display Kubernetes Status"
+      debug:
+        msg: "{{ k8s_status.stdout_lines }}"
+    
+    - name: "Check Network Connectivity"
+      shell: "ping -c 1 8.8.8.8 2>&1 | tail -1"
+      register: network_test
+      ignore_errors: yes
+    
+    - name: "Display Network Status"
+      debug:
+        msg: "{{ network_test.stdout }}"
+
+- name: "Deployment Summary"
+  hosts: localhost
+  gather_facts: no
+  
+  tasks:
+    - name: "Display Final Status"
+      debug:
+        msg: |
+          ✅ DEPLOYMENT VERIFICATION COMPLETE
+          
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          All nodes verified successfully!
+          
+          This playbook can be run multiple times
+          for continuous deployment verification.

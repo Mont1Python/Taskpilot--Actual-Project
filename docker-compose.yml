@@ -39,7 +39,6 @@ services:
     volumes:
       - ./playbooks:/app/playbooks
       - ~/.ssh:/root/.ssh:ro
-      - ./ansible.cfg:/etc/ansible/ansible.cfg:ro
     environment:
       - NODE_ENV=production
     restart: unless-stopped
